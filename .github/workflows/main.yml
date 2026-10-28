@@ -1,0 +1,41 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk RemoveReels.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RemoveReels
+          path: RemoveReels.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" RemoveReels.apk \
+            --target "${{ github.sha }}" \
+            --title "Build ${{ github.run_number }}" \
+            --generate-notes
